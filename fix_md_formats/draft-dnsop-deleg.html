@@ -1,0 +1,2016 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>Extensible Delegation for DNS</title>
+<meta content="Tim April" name="author">
+<meta content="Petr Špaček" name="author">
+<meta content="Ralf Weber" name="author">
+<meta content="David C Lawrence" name="author">
+<meta content="
+       A delegation in the Domain Name System (DNS) is a mechanism that enables efficient and distributed management of the DNS namespace. It involves delegating authority over subdomains to specific DNS servers via NS records, allowing for a hierarchical structure and distributing the responsibility for maintaining DNS records. 
+       An NS record contains the hostname of the nameserver for the delegated namespace. Any facilities of that nameserver must be discovered through other mechanisms. This document proposes a new extensible DNS record type, DELEG, which contains additional information about the delegated namespace and the capabilities of authoritative nameservers for the delegated namespace. 
+    " name="description">
+<meta content="xml2rfc 3.19.1" name="generator">
+<meta content="Internet-Draft" name="keyword">
+<meta content="draft-dnsop-deleg-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.19.1
+    Python 3.11.5
+    ConfigArgParse 1.7
+    google-i18n-address 3.1.0
+    intervaltree 3.1.0
+    Jinja2 3.1.3
+    lxml 4.9.4
+    platformdirs 4.1.0
+    pycountry 23.12.11
+    PyYAML 6.0.1
+    requests 2.31.0
+    setuptools 69.0.3
+    six 1.16.0
+    wcwidth 0.2.13
+-->
+<link href="draft-dnsop-deleg.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Cabin Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Cabin Condensed SemiBold'), local('CabinCondensed-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/cabincondensed-semibold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Cabin Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Cabin Condensed SemiBold'), local('CabinCondensed-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/cabincondensed-semibold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Cabin Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Cabin Condensed SemiBold'), local('CabinCondensed-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/cabincondensed-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Cabin Condensed", sans-serif;
+  font-weight: 600;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1#title {
+  font-size: 32px;
+  line-height: 40px;
+  clear: both;
+}
+h1#title, h1#rfcnum {
+  margin: 1.5em 0 0.2em;
+}
+h1#rfcnum + h1#title {
+  margin: 0.2em 0;
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+}
+#abstract+p code, #abstract+p samp, #abstract+p tt {
+  font-size: 16px;
+  line-height: 0;
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight.art-text {
+  background-color: var(--highlight-color);
+  border: 1px solid var(--line-color);
+  border-radius: 3px;
+  padding: 0.5em 1em 0;
+  margin-bottom: 0.5em;
+}
+.alignRight.art-text pre {
+  padding: 0;
+  width: auto;
+}
+.alignRight {
+  margin: 1em 0;
+}
+.alignRight > *:first-child {
+  border: none;
+  margin: 0;
+  float: right;
+  clear: both;
+}
+.alignRight > *:nth-child(2) {
+  clear: both;
+  display: block;
+  border: none;
+}
+svg {
+  display: block;
+}
+/* font-family isn't space-separated, but =~ will have to do */
+svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
+  font-family: var(--font-mono);
+}
+.alignCenter.art-text {
+  background-color: var(--highlight-color);
+  border: 1px solid var(--line-color);
+  border-radius: 3px;
+  padding: 0.5em 1em 0;
+  margin-bottom: 0.5em;
+}
+.alignCenter.art-text pre {
+  padding: 0;
+  width: auto;
+}
+.alignCenter {
+  margin: 1em 0;
+}
+.alignCenter > *:first-child {
+  border: none;
+  /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+     support flexbox yet.
+  */
+  display: table;
+  margin: 0 auto;
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+}
+:is(ol, ul) :is(ol, ul) {
+  margin-left: 1em;
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+.ulCompact li {
+  margin: 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+}
+ul.empty li, .ulEmpty li {
+  margin-top: 0.5em;
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  line-height: 1;
+  margin: 0 0 0 2em;
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+}
+dl.olPercent {
+  --indent: 5ch;
+}
+dl > dt {
+  float: left;
+  margin-right: 2ch;
+  min-width: 8ch;
+}
+dl.dlNewline > dt {
+  float: none;
+}
+dl > dd {
+  margin-bottom: .8em;
+  margin-left: var(--indent) !important; /* stupid element overrides */
+  min-height: 2ex;
+}
+dl.olPercent > dt {
+  min-width: calc(var(--indent) - 2ch);
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+}
+:is(dl.compact, .dlCompact) > dd > :is(:first-child, .break:first-child + *) {
+  margin-top: 0;
+}
+:is(dl.compact, .dlCompact) > dd > :is(:last-child) {
+  margin-bottom: 0;
+}
+dl > dd > dl {
+  margin-top: 0.5em;
+  margin-bottom: 0;
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a, a[href].selfRef:hover {
+  text-decoration: none;
+}
+a[href] {
+  color: var(--link-color);
+}
+a[href].selfRef, .iref + a[href].internal {
+  color: var(--text-color);
+}
+a[href]:hover {
+  text-decoration: underline;
+}
+a[href].selfRef:hover {
+  background-color: var(--highlight-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+}
+figure blockquote {
+  margin: 0.8em 0.4em 0.4em;
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) p {
+    margin: -2px 0;
+    max-height: 0;
+    transition: max-height 2s ease, margin 0.5s ease 0.5s;
+    overflow: hidden;
+  }
+  :is(#status-of-memo, #copyright):hover p,
+  :is(#status-of-memo, #copyright) h2:target ~ p {
+    margin: 0.5em 0;
+    max-height: 500px;
+    overflow: auto;
+  }
+  pre, svg {
+    display: inline-block;
+    overflow-x: auto;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+}
+table.right {
+  margin-left: auto;
+}
+table.center {
+  margin-left: auto;
+  margin-right: auto;
+}
+table.left {
+  margin-right: auto;
+}
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+table caption {
+  margin: 0;
+  padding: 3px 0 3px 1em;
+}
+table p {
+  margin: 0;
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+}
+a.pilcrow[href] { color: var(--pilcrow-weak); }
+a.pilcrow[href]:hover { text-decoration: none; }
+@media not print {
+  :hover > a.pilcrow {
+    opacity: 1;
+  }
+  a.pilcrow[href]:hover {
+    color: var(--pilcrow-strong);
+    background-color: transparent;
+  }
+}
+@media print {
+  a.pilcrow {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+}
+#identifiers dt {
+  width: var(--identifier-width);
+  min-width: var(--identifier-width);
+  clear: left;
+  float: left;
+  text-align: right;
+  margin-right: 1ch;
+}
+#identifiers dd {
+  margin: 0;
+  margin-left: calc(1em + var(--identifier-width)) !important;
+  min-width: 5em;
+}
+#identifiers .authors .author {
+  display: inline-block;
+  margin-right: 1.5em;
+}
+#identifiers .authors .org {
+  font-style: italic;
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+}
+.docInfo .prepared {
+  float: left;
+}
+.docInfo .prepared {
+  float: right;
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+}
+#toc nav ul {
+  margin: 0 0.5em 0 0;
+  padding: 0;
+  list-style: none;
+}
+#toc nav li {
+  line-height: 1.3em;
+  margin: 2px 0;
+  padding-left: 1.2em;
+  text-indent: -1.2em;
+}
+#toc a.xref {
+  white-space: normal;
+}
+/* references */
+.references dt {
+  text-align: right;
+  font-weight: bold;
+  min-width: 10ch;
+  margin-right: 1.5ch;
+}
+.references dt:target::before {
+  content: "⇒";
+  width: 15px;
+  margin: 0 10px 0 -25px;
+}
+.references dd {
+  margin-left: 12ch !important;
+  overflow: auto;
+}
+
+.refInstance {
+  margin-bottom: 1.25em;
+}
+
+.references .ascii {
+  margin-bottom: 0.25em;
+}
+
+/* index */
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  margin: 1em 0;
+}
+address.vcard .nameRole {
+  font-weight: 700;
+  margin-left: 0;
+}
+address.vcard .label {
+  margin: 0.5em 0;
+}
+address.vcard .type {
+  display: none;
+}
+.alternative-contact {
+  margin: 1.5em 0 1em;
+}
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses > section {
+    column-count: 2;
+    column-gap: 20px;
+  }
+  #authors-addresses > section > h2 {
+    column-span: all;
+  }
+  /* hack for break-inside: avoid-column */
+  #authors-addresses address {
+    display: inline-block;
+    break-inside: avoid-column;
+  }
+}
+
+.rfcEditorRemove p:first-of-type {
+  font-style: italic;
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+/* alternative layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+  }
+  #toc.active {
+      opacity: 1;
+  }
+  #toc h2 {
+    margin: 0;
+    padding: 2px 0 2px 6px;
+    padding-right: 1em;
+    font-size: 18px;
+    line-height: 24px;
+    min-width: 190px;
+    text-align: right;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+  }
+  #toc h2::before { /* css hamburger */
+    float: right;
+    position: relative;
+    width: 1em;
+    height: 1px;
+    left: -164px;
+    margin: 8px 0 0 0;
+    background: white none repeat scroll 0 0;
+    box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+    content: "";
+  }
+  #toc nav {
+    display: none;
+    background-color: var(--background-color);
+    padding: 0.5em 1em 1em;
+    overflow: auto;
+    overscroll-behavior: contain;
+    height: calc(100vh - 48px);
+    border-left: 1px solid #ddd;
+  }
+  #toc.active nav {
+    display: block;
+  }
+  /* Make the collapsed ToC header render white on gray also when it's a link */
+  #toc h2 a,
+  #toc h2 a:link,
+  #toc h2 a:focus,
+  #toc h2 a:hover,
+  #toc a.toplink,
+  #toc a.toplink:hover {
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+  }
+  #toc a.toplink {
+    margin-top: 2px;
+  }
+}
+
+/* alternative layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+  }
+  #toc h2 {
+    margin: 0;
+    padding: 0.25em 1em 1em 0;
+  }
+  #toc nav {
+    display: block;
+    height: calc(90vh - 84px);
+    bottom: 0;
+    padding: 0.5em 0 2em;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  #toc nav > ul  {
+    margin-bottom: 2em;
+  }
+  #toc ul {
+    margin: 0 0 0 4px;
+    font-size: var(--small-font-size);
+  }
+  #toc ul :is(p, li) {
+    margin: 2px 0;
+    line-height: 22px;
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc, #n-introduction {
+    page-break-before: always;
+  }
+  #toc {
+    border-top: none;
+    padding-top: 0;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+  .toplink {
+    display: none;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Changes introduced to fix issues found during implementation */
+
+/* Separate body from document info even without intervening H1 */
+section {
+  clear: both;
+}
+
+/* Top align author divs, to avoid names without organization dropping level with org names */
+.author {
+  vertical-align: top;
+}
+
+/* Style section numbers with more space between number and title */
+.section-number {
+  padding-right: 0.5em;
+}
+
+/* Add styling for a link in the ToC that points to the top of the document */
+a.toplink {
+  float: right;
+  margin: 8px 0.5em 0;
+}
+
+/* Provide styling for table cell text alignment */
+table .text-left {
+  text-align: left;
+}
+table .text-center {
+  text-align: center;
+}
+table .text-right {
+  text-align: right;
+}
+
+/* Make the alternative author contact information look less like just another
+   author, and group it closer with the primary author contact information */
+.alternative-contact {
+  margin: 0.5em 0 0.25em 0;
+}
+address .non-ascii {
+  margin: 0 0 0 2em;
+}
+
+/* With it being possible to set tables with alignment
+  left, center, and right, { width: 100%; } does not make sense */
+table {
+  width: auto;
+}
+
+/* Avoid reference text that sits in a block with very wide left margin,
+   because of a long floating dt label.*/
+.references dd {
+  overflow: visible;
+}
+
+/* Control caption placement */
+caption {
+  caption-side: bottom;
+}
+
+/* Limit the width of the author address vcard, so names in right-to-left
+   script don't end up on the other side of the page. */
+
+address.vcard {
+  max-width: 20em;
+  margin-right: auto;
+}
+
+/* For address alignment dependent on LTR or RTL scripts */
+address div.left {
+  text-align: left;
+}
+address div.right {
+  text-align: right;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg :is([stroke="black"], [stroke^="#000"]) {
+  stroke: var(--text-color);
+}
+svg :is([stroke="white"], [stroke^="#fff"]) {
+  stroke: var(--background-color);
+}
+svg :is([fill="black"], [fill^="#000"], :not([fill])) {
+  fill: var(--text-color);
+}
+svg :is([fill="white"], [fill^="#fff"]) {
+  fill: var(--background-color);
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">DELEG</td>
+<td class="right">January 2024</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">April, et al.</td>
+<td class="center">Expires 21 July 2024</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">dnsop</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-dnsop-deleg-latest</dd>
+<dt class="label-updates">Updates:</dt>
+<dd class="updates">
+<a href="https://www.rfc-editor.org/rfc/rfc1035" class="eref">1035</a> (if approved)</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2024-01-18" class="published">18 January 2024</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Standards Track</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2024-07-21">21 July 2024</time></dd>
+<dt class="label-authors">Authors:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">T. April</div>
+</div>
+<div class="author">
+      <div class="author-name">P. Špaček</div>
+<div class="org">ISC</div>
+</div>
+<div class="author">
+      <div class="author-name">R. Weber</div>
+<div class="org">Akamai Technologies</div>
+</div>
+<div class="author">
+      <div class="author-name">D. Lawrence</div>
+<div class="org">Salesforce</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">Extensible Delegation for DNS</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">A delegation in the Domain Name System (DNS) is a mechanism that enables efficient and distributed management of the DNS namespace. It involves delegating authority over subdomains to specific DNS servers via NS records, allowing for a hierarchical structure and distributing the responsibility for maintaining DNS records.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-2">An NS record contains the hostname of the nameserver for the delegated namespace. Any facilities of that nameserver must be discovered through other mechanisms. This document proposes a new extensible DNS record type, DELEG, which contains additional information about the delegated namespace and the capabilities of authoritative nameservers for the delegated namespace.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-discussion-venues">
+<a href="#name-discussion-venues" class="section-name selfRef">Discussion Venues</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">Source for this draft and an issue tracker can be found at
+    <span><a href="https://github.com/fl1ger/deleg">https://github.com/fl1ger/deleg</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 21 July 2024.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2024 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-terminology" class="internal xref">Terminology</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.2">
+                <p id="section-toc.1-1.1.2.2.1" class="keepWithNext"><a href="#section-1.2" class="auto internal xref">1.2</a>.  <a href="#name-motivation-for-deleg" class="internal xref">Motivation for DELEG</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.3">
+                <p id="section-toc.1-1.1.2.3.1" class="keepWithNext"><a href="#section-1.3" class="auto internal xref">1.3</a>.  <a href="#name-introductory-examples" class="internal xref">Introductory Examples</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.4">
+                <p id="section-toc.1-1.1.2.4.1"><a href="#section-1.4" class="auto internal xref">1.4</a>.  <a href="#name-goal-of-the-deleg-record" class="internal xref">Goal of the DELEG record</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.5">
+                <p id="section-toc.1-1.1.2.5.1"><a href="#section-1.5" class="auto internal xref">1.5</a>.  <a href="#name-dnssec-is-recommended" class="internal xref">DNSSEC is RECOMMENDED</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.5.2.1">
+                    <p id="section-toc.1-1.1.2.5.2.1.1"><a href="#section-1.5.1" class="auto internal xref">1.5.1</a>.  <a href="#name-preventing-downgrade-attack" class="internal xref">Preventing downgrade attacks</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.6">
+                <p id="section-toc.1-1.1.2.6.1"><a href="#section-1.6" class="auto internal xref">1.6</a>.  <a href="#name-facilities" class="internal xref">Facilities</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-deleg-record-type" class="internal xref">DELEG Record Type</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.1">
+                <p id="section-toc.1-1.2.2.1.1"><a href="#section-2.1" class="auto internal xref">2.1</a>.  <a href="#name-difference-between-the-reco" class="internal xref">Difference between the records</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.2">
+                <p id="section-toc.1-1.2.2.2.1"><a href="#section-2.2" class="auto internal xref">2.2</a>.  <a href="#name-aliasmode-record-type" class="internal xref">AliasMode Record Type</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.2.2.1">
+                    <p id="section-toc.1-1.2.2.2.2.1.1"><a href="#section-2.2.1" class="auto internal xref">2.2.1</a>.  <a href="#name-multiple-service-providers" class="internal xref">Multiple Service Providers</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.2.2.2">
+                    <p id="section-toc.1-1.2.2.2.2.2.1"><a href="#section-2.2.2" class="auto internal xref">2.2.2</a>.  <a href="#name-loop-prevention" class="internal xref">Loop Prevention</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.3">
+                <p id="section-toc.1-1.2.2.3.1"><a href="#section-2.3" class="auto internal xref">2.3</a>.  <a href="#name-deployment-considerations" class="internal xref">Deployment Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.3.2.1">
+                    <p id="section-toc.1-1.2.2.3.2.1.1"><a href="#section-2.3.1" class="auto internal xref">2.3.1</a>.  <a href="#name-aliasmode-and-servicemode-i" class="internal xref">AliasMode and ServiceMode in the Parent</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.3.2.2">
+                    <p id="section-toc.1-1.2.2.3.2.2.1"><a href="#section-2.3.2" class="auto internal xref">2.3.2</a>.  <a href="#name-rollout" class="internal xref">Rollout</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.3.2.3">
+                    <p id="section-toc.1-1.2.2.3.2.3.1"><a href="#section-2.3.3" class="auto internal xref">2.3.3</a>.  <a href="#name-availability" class="internal xref">Availability</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.4">
+                <p id="section-toc.1-1.2.2.4.1"><a href="#section-2.4" class="auto internal xref">2.4</a>.  <a href="#name-response-size-consideration" class="internal xref">Response Size Considerations</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-implementation" class="internal xref">Implementation</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
+                <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-including-deleg-rrs-in-a-zo" class="internal xref">Including DELEG RRs in a Zone</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1.2.1">
+                    <p id="section-toc.1-1.3.2.1.2.1.1"><a href="#section-3.1.1" class="auto internal xref">3.1.1</a>.  <a href="#name-signing-deleg-rrs" class="internal xref">Signing DELEG RRs</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
+                <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-authoritative-name-servers" class="internal xref">Authoritative Name Servers</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2.2.1">
+                    <p id="section-toc.1-1.3.2.2.2.1.1"><a href="#section-3.2.1" class="auto internal xref">3.2.1</a>.  <a href="#name-including-deleg-rrs-in-a-re" class="internal xref">Including DELEG RRs in a Response</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2.2.2">
+                    <p id="section-toc.1-1.3.2.2.2.2.1"><a href="#section-3.2.2" class="auto internal xref">3.2.2</a>.  <a href="#name-responding-to-queries-for-t" class="internal xref">Responding to Queries for Type DELEG</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2.2.3">
+                    <p id="section-toc.1-1.3.2.2.2.3.1"><a href="#section-3.2.3" class="auto internal xref">3.2.3</a>.  <a href="#name-priority-of-deleg-over-ns-a" class="internal xref">Priority of DELEG over NS and Glue Address records</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-availability-of-zones-witho" class="internal xref">Availability of Zones Without NS</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-resolution-procedure" class="internal xref">Resolution Procedure</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2.2.1">
+                    <p id="section-toc.1-1.5.2.2.2.1.1"><a href="#section-5.2.1" class="auto internal xref">5.2.1</a>.  <a href="#name-failures-when-deleg-delegat" class="internal xref">Failures when DELEG Delegation is Present</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2">
+                <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-legacy-test-results" class="internal xref">Legacy Test Results</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-acknowledgments-unnumbered" class="internal xref">Acknowledgments {:unnumbered}</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#appendix-C" class="auto internal xref">Appendix C</a>.  <a href="#name-todo" class="internal xref">TODO</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#appendix-D" class="auto internal xref">Appendix D</a>.  <a href="#name-change-log" class="internal xref">Change Log</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-contributors" class="internal xref">Contributors</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#appendix-F" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">In the Domain Name System <span>[<a href="#STD13" class="cite xref">STD13</a>]</span>, subdomains within the domain name hierarchy are indicated by delegations to servers which are authoritative for their portion of the namespace.  The DNS records that do this, called NS records, contain hostnames of nameservers, which resolve to addresses.  No other information is available to the resolver. It is limited to connect to the authoritative servers over UDP and TCP port 53.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">This limitation is a barrier for efficient introduction of new DNS technology. New features come with additional overhead as they are constrained by the intersection of resolver and nameserver functionality. New functionality could be discovered insecurely by trial and error, or negotiated after first connection, which is costly and unsafe.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">The proposed DELEG record type remedies this problem by providing extensible parameters to indicate capabilities that a resolver may use for the delegated authority, for example that it should be contacted using a transport mechanism other than DNS over UDP or TCP on port 53.<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-4">DELEG records are served with NS and DS records in the Authority section of DNS delegation type responses.  Standard behavior of legacy DNS resolvers is to ignore the DELEG type and continue to rely on NS and DS records (see compliance testing described in Appendix A).  Resolvers that do understand DELEG and its associated parameters can efficiently switch to the new mechanism.<a href="#section-1-4" class="pilcrow">¶</a></p>
+<p id="section-1-5">The DELEG record leverages the Service Binding (SVCB) record format defined in <span>[<a href="#RFC9460" class="cite xref">RFC9460</a>]</span>, using a subset of the already defined service parameters.<a href="#section-1-5" class="pilcrow">¶</a></p>
+<p id="section-1-6">DELEG can use AliasMode, inherited from SVCB, to insert a level of indirection to ease the operational maintenance of multiple zones by the same servers.  For example, an operator can have numerous customer domains all aliased to nameserver sets whose operational characteristics can be easily updated without intervention from the customers.  Most notably, this provides a method for addressing the long-standing problem operators have with maintaining DS records on behalf of their customers. This type of facility will be handled in separate documents.<a href="#section-1-6" class="pilcrow">¶</a></p>
+<div id="terminology">
+<section id="section-1.1">
+        <h3 id="name-terminology">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-terminology" class="section-name selfRef">Terminology</a>
+        </h3>
+<p id="section-1.1-1">The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+"OPTIONAL" in this document are to be interpreted as described in <br>
+BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they appear in
+all capitals, as shown here.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+<p id="section-1.1-2">Terminology regarding the Domain Name System comes from <span>[<a href="#BCP219" class="cite xref">BCP219</a>]</span>, with addition terms defined here:<a href="#section-1.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1.1-3.1">
+            <p id="section-1.1-3.1.1">legacy name servers: An authoritative server that does not support the DELEG record.<a href="#section-1.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.1-3.2">
+            <p id="section-1.1-3.2.1">legacy resolvers: A resolver that does not support the DELEG record.<a href="#section-1.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="motivation-for-deleg">
+<section id="section-1.2">
+        <h3 id="name-motivation-for-deleg">
+<a href="#section-1.2" class="section-number selfRef">1.2. </a><a href="#name-motivation-for-deleg" class="section-name selfRef">Motivation for DELEG</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-1.2-1.1">
+            <p id="section-1.2-1.1.1">There is no secure way to signal capabilities or new features of an authoritative server, such as authenticated DNS-over-TLS. A resolver must resort to trial-and-error methods that can potentially fall victim to downgrade attacks.<a href="#section-1.2-1.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.2-1.2">
+            <p id="section-1.2-1.2.1">Delegation point NS records and glue address records are, by design, not DNSSEC signed. This presents a leap of faith. Spoofed delegation point NS records can be detected eventually if the delegated domain was signed, but only after traffic was sent to the (potentially) spoofed endpoint.<a href="#section-1.2-1.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-1.2-1.3">
+            <p id="section-1.2-1.3.1">The Registry, Registrar, Registrant (RRR) model has no formally defined role for  DNS operators. Consequently, registrants are the channel between DNS operators and registries/registrars on purely operational elements, such as adding NS records, modify DS records when rolling keys, etc. Deleg's AliasMode allows the registrants to delegate these facilities to a DNS Operator.<a href="#section-1.2-1.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="introductory-examples">
+<section id="section-1.3">
+        <h3 id="name-introductory-examples">
+<a href="#section-1.3" class="section-number selfRef">1.3. </a><a href="#name-introductory-examples" class="section-name selfRef">Introductory Examples</a>
+        </h3>
+<p id="section-1.3-1">To introduce DELEG record, this example shows the authority section of a DNS response that delegates a subdomain to another nameserver.<a href="#section-1.3-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-1.3-2">
+<pre>
+example.com.  86400  IN DELEG  1 ns1.example.com. (
+                ipv4hint=192.0.2.1 ipv6hint=2001:DB8::1 )
+example.com.  86400  IN NS     ns1.example.com.
+ns1.example.com.    86400   IN  A  192.0.2.1
+ns1.example.com     86400   IN  AAAA    2001:DB8::1
+</pre><a href="#section-1.3-2" class="pilcrow">¶</a>
+</div>
+<p id="section-1.3-3">In this example, the authoritative nameserver is delegating using the same parameters as regular DNS, but the delegation as well as the glue can be signed.<a href="#section-1.3-3" class="pilcrow">¶</a></p>
+<p id="section-1.3-4">Like in SVCB, DELEG also offer the ability to use the Alias form of delegation. The example below shows an example where example.com is being delegated with a DELEG AliasMode record which can then be further resolved using standard SVCB to locate the actual parameters.<a href="#section-1.3-4" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-1.3-5">
+<pre>
+example.com.  86400  IN DELEG 0   config2.example.net.
+example.com.  86400  IN NS     ns2.example.net.
+</pre><a href="#section-1.3-5" class="pilcrow">¶</a>
+</div>
+<p id="section-1.3-6">The example.net authoritative server may return the following SVCB records in response to a query as directed by the above records.<a href="#section-1.3-6" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-1.3-7">
+<pre>
+config2.example.net 3600    IN SVCB . (
+                ipv4hint=192.0.2.54,192.0.2.56
+                ipv6hint=2001:db8:2423::3,2001:db8:2423::4 )
+</pre><a href="#section-1.3-7" class="pilcrow">¶</a>
+</div>
+<p id="section-1.3-8">The above records indicate to the client that the actual configuration for the example.com zone can be found at config2.example.net<a href="#section-1.3-8" class="pilcrow">¶</a></p>
+<p id="section-1.3-9">Later sections of this document will go into more detail on the resolution process using these records.<a href="#section-1.3-9" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="goal-of-the-deleg-record">
+<section id="section-1.4">
+        <h3 id="name-goal-of-the-deleg-record">
+<a href="#section-1.4" class="section-number selfRef">1.4. </a><a href="#name-goal-of-the-deleg-record" class="section-name selfRef">Goal of the DELEG record</a>
+        </h3>
+<p id="section-1.4-1">The primary goal of the DELEG records is to provide zone owners a method to signal capabilities to clients how to connect and validate a subdomain. This method coexists with NS records in the same zone.<a href="#section-1.4-1" class="pilcrow">¶</a></p>
+<p id="section-1.4-2">The DELEG record is authoritative in the parent zone and, if signed, has to be signed with the key of the parent zone. The target of an alias record is an SVCB record that exists and can be signed in the zone it is pointed at, including the child zone.<a href="#section-1.4-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="dnssec-is-recommended">
+<section id="section-1.5">
+        <h3 id="name-dnssec-is-recommended">
+<a href="#section-1.5" class="section-number selfRef">1.5. </a><a href="#name-dnssec-is-recommended" class="section-name selfRef">DNSSEC is RECOMMENDED</a>
+        </h3>
+<p id="section-1.5-1">While DNSSEC is RECOMMENDED, unsigned DELEG records may be retrieved in a secure way from trusted, Privacy-enabling DNS servers using encrypted transports.<a href="#section-1.5-1" class="pilcrow">¶</a></p>
+<p id="section-1.5-2">FOR DISCUSSION: This will lead to cyclical dependencies. A DELEG record can introduce a secure way to communicate with trusted, Privacy-enabling DNS servers. For that, it needs to be DNSSEC signed.<a href="#section-1.5-2" class="pilcrow">¶</a></p>
+<div id="preventing-downgrade-attacks">
+<section id="section-1.5.1">
+          <h4 id="name-preventing-downgrade-attack">
+<a href="#section-1.5.1" class="section-number selfRef">1.5.1. </a><a href="#name-preventing-downgrade-attack" class="section-name selfRef">Preventing downgrade attacks</a>
+          </h4>
+<p id="section-1.5.1-1">A flag in the DNSKEY record is used as a backwards compatible, secure signal to indicate to a resolver that DELEG records are present or that there is an authenticated denial of a DELEG record. Legacy resolvers will ignore this flag and use the DNSKEY as is.<a href="#section-1.5.1-1" class="pilcrow">¶</a></p>
+<p id="section-1.5.1-2">Without this secure signal an on-path adversary can remove DELEG records and its RRsig from a response and effectively downgrade this to a legacy DNSSEC signed response.<a href="#section-1.5.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="facilities">
+<section id="section-1.6">
+        <h3 id="name-facilities">
+<a href="#section-1.6" class="section-number selfRef">1.6. </a><a href="#name-facilities" class="section-name selfRef">Facilities</a>
+        </h3>
+<p id="section-1.6-1">The DELEG record is extensible in such a way that future innovations in the domain name system, such as new methods of secure transport, message encoding, error reporting, etc, does not depend on a re-design of the DNS.<a href="#section-1.6-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="deleg-record-type">
+<section id="section-2">
+      <h2 id="name-deleg-record-type">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-deleg-record-type" class="section-name selfRef">DELEG Record Type</a>
+      </h2>
+<p id="section-2-1">The SVCB record allows for two types of records, the AliasMode and the ServiceMode. The DELEG record takes advantage of both and each will be described below in depth. The wire format of and the registry for the DELEG record is the same as SVCB record defined in  <span>[<a href="#RFC9460" class="cite xref">RFC9460</a>]</span><a href="#section-2-1" class="pilcrow">¶</a></p>
+<div id="difference-between-the-records">
+<section id="section-2.1">
+        <h3 id="name-difference-between-the-reco">
+<a href="#section-2.1" class="section-number selfRef">2.1. </a><a href="#name-difference-between-the-reco" class="section-name selfRef">Difference between the records</a>
+        </h3>
+<p id="section-2.1-1">This document uses two different resource record types. Both records have the same functionality, with the difference between them being that the DELEG record MUST only be used at a delegation point, while the SVCB is used as a normal resource record and does not indicate that the label is being delegated. For example, take the following DELEG record:<a href="#section-2.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-2.1-2">
+<pre>
+Zone com.:
+example.com.  86400  IN DELEG 1   config2.example.net.
+</pre><a href="#section-2.1-2" class="pilcrow">¶</a>
+</div>
+<p id="section-2.1-3">When a client receives the above record, the resolver should send queries for any name under example.com to the nameserver at config2.example.net unless further delegated. By contrast, when presented with the records below:<a href="#section-2.1-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-2.1-4">
+<pre>
+Zone com.:
+example.com.  86400  IN DELEG 0   config3.example.org.
+
+Zone example.org.:
+config3.example.org.  86400  IN SVCB 1 . ( ipv4hint=192.0.2.54,192.0.2.56
+                ipv6hint=2001:db8:2423::3,2001:db8:2423::4 )
+</pre><a href="#section-2.1-4" class="pilcrow">¶</a>
+</div>
+<p id="section-2.1-5">A resolver trying to resolve a name under example.com would get the first record above from the parent authoritative server, .COM, indicating that the SVCB records found at config3.example.org should be used to locate the authoritative nameservers of example.com, and other parameters.<a href="#section-2.1-5" class="pilcrow">¶</a></p>
+<p id="section-2.1-6">The primary difference between the two records is that the DELEG record means that anything under the record label should be queried at the delegated server while the SVCB record is just for redirection purposes, and any names under the record's label should still be resolved using the same server unless otherwise delegated.<a href="#section-2.1-6" class="pilcrow">¶</a></p>
+<p id="section-2.1-7">It should be noted that both DELEG and SVCB records may exist for the same label, but they will be in different zones. Below is an example of this:<a href="#section-2.1-7" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-2.1-8">
+<pre>
+Zone com.:
+example.com.  86400  IN DELEG 0   c1.example.org.
+
+Zone example.org.:
+c1.example.org.  86400  IN DELEG  1   config3.example.net. (
+                            ipv6hint=2001:db8:2423::3 )
+c1.example.org.  86400  IN NS test.c1.example.org.
+test.c1.example.org. 600 IN A 192.0.2.1
+
+Zone c1.example.org:
+c1.example.org.  86400  IN SVCB 1   config2.example.net. (
+                    ipv6hint=2001:db8:4567::4  )
+c1.example.org.  86400  IN NS test.c1.example.org.
+test.c1.example.org. 600 IN A 192.0.2.1
+</pre><a href="#section-2.1-8" class="pilcrow">¶</a>
+</div>
+<p id="section-2.1-9">In the above case, the DELEG record for c1.example.org would only be used when trying to resolve names at or below c1.example.org. This is why when an AliasMode DELEG or SVCB record is encountered, the resolver MUST query for the SVCB record associated with the given name.<a href="#section-2.1-9" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="aliasmode-record-type">
+<section id="section-2.2">
+        <h3 id="name-aliasmode-record-type">
+<a href="#section-2.2" class="section-number selfRef">2.2. </a><a href="#name-aliasmode-record-type" class="section-name selfRef">AliasMode Record Type</a>
+        </h3>
+<p id="section-2.2-1">In order to take full advantage of the AliasMode of DELEG and SVCB, the parent, child, and resolver must support these records. When supported, the use of the AliasMode will allow zone owners to delegate their zones to another operator with a single record in the parent. AliasMode SVCB records SHOULD appear in the child zone when used in the parent. If a resolver were to encounter an AliasMode DELEG or SVCB record, it would then resolve the name in the TargetName of the original record using SVCB RR type to receive either another AliasMode record or a ServiceMode SVCB record.<a href="#section-2.2-1" class="pilcrow">¶</a></p>
+<p id="section-2.2-2">For example, if the name www.example.com was being resolved, the .com zone may issue a referral by returning the following record:<a href="#section-2.2-2" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-2.2-3">
+<pre>
+example.com.    86400    IN  DELEG     0   config1.example.net.
+</pre><a href="#section-2.2-3" class="pilcrow">¶</a>
+</div>
+<p id="section-2.2-4">The above record would indicate to the resolver that in order to obtain the authoritative nameserver records for example.com, the resolver should resolve the RR type SVCB for the name config1.example.net.<a href="#section-2.2-4" class="pilcrow">¶</a></p>
+<div id="multiple-service-providers">
+<section id="section-2.2.1">
+          <h4 id="name-multiple-service-providers">
+<a href="#section-2.2.1" class="section-number selfRef">2.2.1. </a><a href="#name-multiple-service-providers" class="section-name selfRef">Multiple Service Providers</a>
+          </h4>
+<p id="section-2.2.1-1">Some zone owners may wish to use multiple providers to serve their zone, in which case multiple DELEG AliasMode records can be used. In the event that multiple DELEG AliasMode records are encountered, the resolver SHOULD treat those as a union the same way this is done with NS records, picking one at random for the first lookup and eventually discovering the others. How exactly DNS questions are directed and split between configuration sets is implementation specific:<a href="#section-2.2.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-2.2.1-2">
+<pre>
+example.com.    86400    IN  DELEG     0   config1.example.net.
+example.com.    86400    IN  DELEG     0   config1.example.org.
+</pre><a href="#section-2.2.1-2" class="pilcrow">¶</a>
+</div>
+<p id="section-2.2.1-3">[ DRAFT NOTE: SVCB says that there "SHOULD only have a single RR". This ignores that but keeps the randomization part. Section 2.4.2 of SVCB ]<a href="#section-2.2.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="loop-prevention">
+<section id="section-2.2.2">
+          <h4 id="name-loop-prevention">
+<a href="#section-2.2.2" class="section-number selfRef">2.2.2. </a><a href="#name-loop-prevention" class="section-name selfRef">Loop Prevention</a>
+          </h4>
+<p id="section-2.2.2-1">The TargetName of an SVCB or DELEG record MAY be the owner of a CNAME record. Resolvers MUST follow CNAMEs as well as further alias SVCB records as normal, but MUST not allow more then 4 total lookups per delegation, with the first one being the DELEG referral and then 3 SVCB/CNAME lookups maximal.<a href="#section-2.2.2-1" class="pilcrow">¶</a></p>
+<p id="section-2.2.2-2">Special care should be taken by both the zone owner and the delegated zone operator to ensure that a lookup loop is not created by having two AliasMode records rely on each other to serve the zone. Doing so may result in a resolution loop, and likely a denial of service. The mechanism on following CNAME and SVCB alias above should prevent exhaustion of server resources. If a resolution can not be found after 4 lookups the server should reply with a SERVFAIL error code.<a href="#section-2.2.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="deployment-considerations">
+<section id="section-2.3">
+        <h3 id="name-deployment-considerations">
+<a href="#section-2.3" class="section-number selfRef">2.3. </a><a href="#name-deployment-considerations" class="section-name selfRef">Deployment Considerations</a>
+        </h3>
+<p id="section-2.3-1">The DELEG and SVCB records are intended to replace the NS record while also adding additional functionality in order to support additional transports for the DNS. Below are discussions of considerations for deployment.<a href="#section-2.3-1" class="pilcrow">¶</a></p>
+<div id="aliasmode-and-servicemode-in-the-parent">
+<section id="section-2.3.1">
+          <h4 id="name-aliasmode-and-servicemode-i">
+<a href="#section-2.3.1" class="section-number selfRef">2.3.1. </a><a href="#name-aliasmode-and-servicemode-i" class="section-name selfRef">AliasMode and ServiceMode in the Parent</a>
+          </h4>
+<p id="section-2.3.1-1">Both the AliasMode and ServiceMode records can be returned for the DELEG record from the parent. This is different from the SCVB  <span>[<a href="#RFC9460" class="cite xref">RFC9460</a>]</span> specification and only applies for the DELEG RRSet in the parent.<a href="#section-2.3.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="rollout">
+<section id="section-2.3.2">
+          <h4 id="name-rollout">
+<a href="#section-2.3.2" class="section-number selfRef">2.3.2. </a><a href="#name-rollout" class="section-name selfRef">Rollout</a>
+          </h4>
+<p id="section-2.3.2-1">When introduced, the DELEG and SVCB records might not initially be supported by the DNS root or TLD operators. Zone owners may place these records into their zones before the zones above them have done so. However, doing so is only useful for further delegations down the tree as an SVCB record at the zone apex alone does not indicate a new delegation type. The only way to discover new delegations is with the DELEG record at the parent.<a href="#section-2.3.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="availability">
+<section id="section-2.3.3">
+          <h4 id="name-availability">
+<a href="#section-2.3.3" class="section-number selfRef">2.3.3. </a><a href="#name-availability" class="section-name selfRef">Availability</a>
+          </h4>
+<p id="section-2.3.3-1">If a zone operator removes all NS records before DELEG and SVCB records are implemented by all clients, the availability of their zones will be impacted for the clients that are using non-supporting resolvers. In some cases, this may be a desired quality, but should be noted by zone owners and operators.<a href="#section-2.3.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="response-size-considerations">
+<section id="section-2.4">
+        <h3 id="name-response-size-consideration">
+<a href="#section-2.4" class="section-number selfRef">2.4. </a><a href="#name-response-size-consideration" class="section-name selfRef">Response Size Considerations</a>
+        </h3>
+<p id="section-2.4-1">For latency-conscious zones, the overall packet size of the delegation records from a parent zone to child zone should be taken into account when configuring the NS, DELEG and SVCB records. Resolvers that wish to receive DELEG and SVCB records in response SHOULD advertise and support a buffer size that is as large as possible, to allow the authoritative server to respond without truncating whenever possible.<a href="#section-2.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="implementation">
+<section id="section-3">
+      <h2 id="name-implementation">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-implementation" class="section-name selfRef">Implementation</a>
+      </h2>
+<p id="section-3-1">This document introduces the concept of signaling capabilities to clients on how to connect and validate a subdomain. This section details the implementation specifics of the DELEG record for various DNS components.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<div id="including-deleg-rrs-in-a-zone">
+<section id="section-3.1">
+        <h3 id="name-including-deleg-rrs-in-a-zo">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-including-deleg-rrs-in-a-zo" class="section-name selfRef">Including DELEG RRs in a Zone</a>
+        </h3>
+<p id="section-3.1-1">A DELEG RRset MAY be present at a delegation point.  The DELEG RRset MAY contain multiple records. DELEG RRsets MUST NOT appear at a zone's apex.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+<p id="section-3.1-2">A DELEG RRset MAY be present with or without NS or DS RRsets at the delegation point.<a href="#section-3.1-2" class="pilcrow">¶</a></p>
+<p id="section-3.1-3">Construction of a DELEG RR requires knowledge which implies communication between the
+operators of the child and parent zones. This communication is an operational matter not covered by this document.<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+<div id="signing-deleg-rrs">
+<section id="section-3.1.1">
+          <h4 id="name-signing-deleg-rrs">
+<a href="#section-3.1.1" class="section-number selfRef">3.1.1. </a><a href="#name-signing-deleg-rrs" class="section-name selfRef">Signing DELEG RRs</a>
+          </h4>
+<p id="section-3.1.1-1">A DELEG RRset MUST be DNSSEC signed if the zone is signed.<a href="#section-3.1.1-1" class="pilcrow">¶</a></p>
+<p id="section-3.1.1-2">If a signed zone contains DELEG records, the zone MUST be signed with a DNSKEY that has the DELEG flag set.<a href="#section-3.1.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="authoritative-name-servers">
+<section id="section-3.2">
+        <h3 id="name-authoritative-name-servers">
+<a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-authoritative-name-servers" class="section-name selfRef">Authoritative Name Servers</a>
+        </h3>
+<div id="including-deleg-rrs-in-a-response">
+<section id="section-3.2.1">
+          <h4 id="name-including-deleg-rrs-in-a-re">
+<a href="#section-3.2.1" class="section-number selfRef">3.2.1. </a><a href="#name-including-deleg-rrs-in-a-re" class="section-name selfRef">Including DELEG RRs in a Response</a>
+          </h4>
+<p id="section-3.2.1-1">If a DELEG RRset is present at the delegation point, the name server MUST return both the DELEG RRset and its associated RRSIG RR in the Authority section along with the DS RRset and its associated RRSIG RR and the NS RRset.<a href="#section-3.2.1-1" class="pilcrow">¶</a></p>
+<p id="section-3.2.1-2">If no DELEG RRset is present at the delegation point, and the zone was signed with a DNSKEY that has the DELEG flag set, the name server MUST return the NSEC or NSEC3 RR that proves that the DELEG RRset is not present including its associated RRSIG RR along with the DS RRset and its associated RRSIG RR if present and the NS RRset, if present.<a href="#section-3.2.1-2" class="pilcrow">¶</a></p>
+<p id="section-3.2.1-3">Including these DELEG, DS, NSEC or NSEC3, and RRSIG RRs increases the size of referral messages. If space does not permit inclusion of these records, including glue address records, the name server MUST set the TC bit on the response.<a href="#section-3.2.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="responding-to-queries-for-type-deleg">
+<section id="section-3.2.2">
+          <h4 id="name-responding-to-queries-for-t">
+<a href="#section-3.2.2" class="section-number selfRef">3.2.2. </a><a href="#name-responding-to-queries-for-t" class="section-name selfRef">Responding to Queries for Type DELEG</a>
+          </h4>
+<p id="section-3.2.2-1">DELEG records, when present, are included in referrals. When a parent and child are served from the same authoritative server, this referral will not be sent because the authoritative server will respond with information from the child zone. In that case, the resolver may query for type DELEG.<a href="#section-3.2.2-1" class="pilcrow">¶</a></p>
+<p id="section-3.2.2-2">The DELEG resource record type is unusual in that it appears only on the parent zone's side of a zone cut.  For example, the DELEG RRset for the delegation of "foo.example" is part of the "example" zone rather than in the "foo.example" zone.  This requires special processing rules for both name servers and resolvers because the name server for the child zone is authoritative for the name at the zone cut by the normal DNS rules, but the child zone does not contain the DELEG RRset.<a href="#section-3.2.2-2" class="pilcrow">¶</a></p>
+<p id="section-3.2.2-3">A DELEG-aware resolver sends queries to the parent zone when looking for a DELEG RR at a delegation point. However, special rules are necessary to avoid confusing legacy resolvers which might become involved in processing such a query (for example, in a network configuration that forces a DELEG-aware resolver to channel its queries through a legacy recursive name server).  The rest of this section describes how a DELEG-aware name server processes DELEG queries in order to avoid this problem.<a href="#section-3.2.2-3" class="pilcrow">¶</a></p>
+<p id="section-3.2.2-4">The need for special processing by a DELEG-aware name server only arises when all the following conditions are met:<a href="#section-3.2.2-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3.2.2-5.1">
+              <p id="section-3.2.2-5.1.1">The name server has received a query for the DELEG RRset at a zone cut.<a href="#section-3.2.2-5.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-3.2.2-5.2">
+              <p id="section-3.2.2-5.2.1">The name server is authoritative for the child zone.<a href="#section-3.2.2-5.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-3.2.2-5.3">
+              <p id="section-3.2.2-5.3.1">The name server is not authoritative for the parent zone.<a href="#section-3.2.2-5.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-3.2.2-5.4">
+              <p id="section-3.2.2-5.4.1">The name server does not offer recursion.<a href="#section-3.2.2-5.4.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<p id="section-3.2.2-6">In all other cases, the name server either has some way of obtaining the DELEG RRset or could not have been expected to have the DELEG RRset, so the name server can return either the DELEG RRset or an error response according to the normal processing rules.<a href="#section-3.2.2-6" class="pilcrow">¶</a></p>
+<p id="section-3.2.2-7">If all the above conditions are met, however, the name server is authoritative for the domain name being searching for, but cannot supply the requested RRset. In this case, the name server MUST return an authoritative "no data" response showing that the DELEG RRset does not exist in the child zone's apex.<a href="#section-3.2.2-7" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="priority-of-deleg-over-ns-and-glue-address-records">
+<section id="section-3.2.3">
+          <h4 id="name-priority-of-deleg-over-ns-a">
+<a href="#section-3.2.3" class="section-number selfRef">3.2.3. </a><a href="#name-priority-of-deleg-over-ns-a" class="section-name selfRef">Priority of DELEG over NS and Glue Address records</a>
+          </h4>
+<p id="section-3.2.3-1">DELEG-aware resolvers SHOULD prioritize the information in DELEG records over NS and glue address records.<a href="#section-3.2.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="privacy-considerations">
+<section id="section-4">
+      <h2 id="name-privacy-considerations">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
+      </h2>
+<p id="section-4-1">All of the information handled or transmitted by this protocol is public information published in the DNS.<a href="#section-4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-5">
+      <h2 id="name-security-considerations">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<p id="section-5-1">TODO: Fill this section out<a href="#section-5-1" class="pilcrow">¶</a></p>
+<div id="availability-of-zones-without-ns">
+<section id="section-5.1">
+        <h3 id="name-availability-of-zones-witho">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-availability-of-zones-witho" class="section-name selfRef">Availability of Zones Without NS</a>
+      </h3>
+</section>
+</div>
+<div id="resolution-procedure">
+<section id="section-5.2">
+        <h3 id="name-resolution-procedure">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-resolution-procedure" class="section-name selfRef">Resolution Procedure</a>
+        </h3>
+<p id="section-5.2-1">An example of a simplified DNS interaction after priming. This is a query for www.example.com type AAAA with DELEG-aware com and example.com authoritative servers.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.2-2.1">
+            <p id="section-5.2-2.1.1">Ask www.example.com qtype AAAA to a.root-servers.net the answer is:
+  Answer section: (empty)
+  Authority section:
+      com.   172800 IN NS a.gtld-servers.net.
+  Additional section:
+      a.gtld-servers.net. 172800 IN AAAA 2001:db8:a83e::2:30<a href="#section-5.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.2-2.2">
+            <p id="section-5.2-2.2.1">Ask www.example.com qtype AAAA to a.gtld-servers.net the answer is:
+      Answer section: (empty)
+      Authority section:
+          example.com.   172800 IN NS ns1.example.com.
+          example.com.   172800 IN DELEG   1 config1.example.com.
+                                      ( ipv6hint=2001:db8:440:1:1f::24 )
+      Additional section:
+          ns1.example.com. 172800 IN AAAA 2001:db8:322c::35:42<a href="#section-5.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.2-2.3">
+            <p id="section-5.2-2.3.1">Ask www.example.com qtype AAAA to config1.example.com (2001:db8:1:1f::24) the answer is:
+          Answer section:
+              www.example.com.  3600 IN AAAA 2001:db8:a0:322c::2
+          Authority section: (empty)
+          Additional section: (empty)<a href="#section-5.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-5.2-3">TODO: more resolution examples (e.g out of bailiwick)<a href="#section-5.2-3" class="pilcrow">¶</a></p>
+<div id="failures-when-deleg-delegation-is-present">
+<section id="section-5.2.1">
+          <h4 id="name-failures-when-deleg-delegat">
+<a href="#section-5.2.1" class="section-number selfRef">5.2.1. </a><a href="#name-failures-when-deleg-delegat" class="section-name selfRef">Failures when DELEG Delegation is Present</a>
+          </h4>
+<p id="section-5.2.1-1">When a delegation using DELEG to a child is present, the resolver MUST use it and SERVFAIL if none of the configurations provided work.<a href="#section-5.2.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="iana-considerations">
+<section id="section-6">
+      <h2 id="name-iana-considerations">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-6-1">DELEG will use the SVCB IANA registry definitions in section 14.3 of <span>[<a href="#RFC9460" class="cite xref">RFC9460</a>]</span>.<a href="#section-6-1" class="pilcrow">¶</a></p>
+<p id="section-6-2">The IANA has assigned a bit in the DNSKEY flags field (see Section 7 of <span>[<a href="#RFC4034" class="cite xref">RFC4034</a>]</span> for the DELEG bit (N).<a href="#section-6-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<section id="section-7">
+      <h2 id="name-references">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-7.1">
+        <h3 id="name-normative-references">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="RFC4034">[RFC4034]</dt>
+        <dd>
+<span class="refAuthor">Arends, R.</span>, <span class="refAuthor">Austein, R.</span>, <span class="refAuthor">Larson, M.</span>, <span class="refAuthor">Massey, D.</span>, and <span class="refAuthor">S. Rose</span>, <span class="refTitle">"Resource Records for the DNS Security Extensions"</span>, <span class="seriesInfo">RFC 4034</span>, <span class="seriesInfo">DOI 10.17487/RFC4034</span>, <time datetime="2005-03" class="refDate">March 2005</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc4034">https://www.rfc-editor.org/rfc/rfc4034</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9460">[RFC9460]</dt>
+        <dd>
+<span class="refAuthor">Schwartz, B.</span>, <span class="refAuthor">Bishop, M.</span>, and <span class="refAuthor">E. Nygren</span>, <span class="refTitle">"Service Binding and Parameter Specification via the DNS (SVCB and HTTPS Resource Records)"</span>, <span class="seriesInfo">RFC 9460</span>, <span class="seriesInfo">DOI 10.17487/RFC9460</span>, <time datetime="2023-11" class="refDate">November 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9460">https://www.rfc-editor.org/rfc/rfc9460</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="STD13">[STD13]</dt>
+      <dd>
+<div class="refInstance" id="RFC1034">
+            <span class="refAuthor">Mockapetris, P.</span>, <span class="refTitle">"Domain names - concepts and facilities"</span>, <span class="seriesInfo">STD 13</span>, <span class="seriesInfo">RFC 1034</span>, <time datetime="1987-11" class="refDate">November 1987</time>. </div>
+<div class="refInstance" id="RFC1035">
+            <span class="refAuthor">Mockapetris, P.</span>, <span class="refTitle">"Domain names - implementation and specification"</span>, <span class="seriesInfo">STD 13</span>, <span class="seriesInfo">RFC 1035</span>, <time datetime="1987-11" class="refDate">November 1987</time>. </div>
+<span>&lt;<a href="https://www.rfc-editor.org/info/std13">https://www.rfc-editor.org/info/std13</a>&gt;</span>
+</dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-7.2">
+        <h3 id="name-informative-references">
+<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="BCP219">[BCP219]</dt>
+        <dd>
+<div class="refInstance" id="RFC8499">
+            <span class="refAuthor">Hoffman, P.</span>, <span class="refAuthor">Sullivan, A.</span>, and <span class="refAuthor">K. Fujiwara</span>, <span class="refTitle">"DNS Terminology"</span>, <span class="seriesInfo">BCP 219</span>, <span class="seriesInfo">RFC 8499</span>, <time datetime="2019-01" class="refDate">January 2019</time>. </div>
+<span>&lt;<a href="https://www.rfc-editor.org/info/bcp219">https://www.rfc-editor.org/info/bcp219</a>&gt;</span>
+</dd>
+<dd class="break"></dd>
+<dt id="I-D.tapril-ns2">[I-D.tapril-ns2]</dt>
+        <dd>
+<span class="refAuthor">April, T.</span>, <span class="refTitle">"Parameterized Nameserver Delegation with NS2 and NS2T"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-tapril-ns2-01</span>, <time datetime="2020-07-13" class="refDate">13 July 2020</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-tapril-ns2-01">https://datatracker.ietf.org/doc/html/draft-tapril-ns2-01</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+      <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+<div id="Testing">
+<section id="appendix-A">
+      <h2 id="name-legacy-test-results">
+<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-legacy-test-results" class="section-name selfRef">Legacy Test Results</a>
+      </h2>
+<p id="appendix-A-1">In December 2023, Roy Arends and Shumon Huque tested two distinct sets of requirements that would enable the approach taken in this document.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-A-2.1">
+          <p id="appendix-A-2.1.1">legacy resolvers ignore unknown record types in the authority section of referrals.<a href="#appendix-A-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-A-2.2">
+          <p id="appendix-A-2.2.1">legacy resolvers ignore an unknown key flag in a DNSKEY.<a href="#appendix-A-2.2.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="appendix-A-3">Various recent implmentations were tested (BIND, Unbound, PowerDNS Recursor and Knot) in addition to various public resolver services (Cloudflare, Google, Packet Clearing House). All possible variations of delegations were tested, and there were no issues.
+Further details about the specific testing methodology, please see test-plan.<a href="#appendix-A-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="acknowledgments-unnumbered">
+<section id="appendix-B">
+      <h2 id="name-acknowledgments-unnumbered">
+<a href="#appendix-B" class="section-number selfRef">Appendix B. </a><a href="#name-acknowledgments-unnumbered" class="section-name selfRef">Acknowledgments {:unnumbered}</a>
+      </h2>
+<p id="appendix-B-1">This document is heavily based on past work done by Tim April in
+<span>[<a href="#I-D.tapril-ns2" class="cite xref">I-D.tapril-ns2</a>]</span> and thus extends the thanks to the people helping on this which are:
+John Levine, Erik Nygren, Jon Reed, Ben Kaduk, Mashooq Muhaimen, Jason Moreau, Jerrod Wiesman, Billy Tiemann, Gordon Marx and Brian Wellington.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="todo">
+<section id="appendix-C">
+      <h2 id="name-todo">
+<a href="#appendix-C" class="section-number selfRef">Appendix C. </a><a href="#name-todo" class="section-name selfRef">TODO</a>
+      </h2>
+<span class="break"></span><dl class="dlParallel" id="appendix-C-1">
+        <dt id="appendix-C-1.1">RFC EDITOR:</dt>
+        <dd style="margin-left: 1.5em" id="appendix-C-1.2">
+          <p id="appendix-C-1.2.1">PLEASE REMOVE THE THIS SECTION PRIOR TO PUBLICATION.<a href="#appendix-C-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<ul class="normal">
+<li class="normal" id="appendix-C-2.1">
+          <p id="appendix-C-2.1.1">Write a security considerations section<a href="#appendix-C-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-C-2.2">
+          <p id="appendix-C-2.2.1">worked out resolution example including alias form delegation<a href="#appendix-C-2.2.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="change-log">
+<section id="appendix-D">
+      <h2 id="name-change-log">
+<a href="#appendix-D" class="section-number selfRef">Appendix D. </a><a href="#name-change-log" class="section-name selfRef">Change Log</a>
+      </h2>
+<span class="break"></span><dl class="dlParallel" id="appendix-D-1">
+        <dt id="appendix-D-1.1">RFC EDITOR:</dt>
+        <dd style="margin-left: 1.5em" id="appendix-D-1.2">
+          <p id="appendix-D-1.2.1">PLEASE REMOVE THE THIS SECTION PRIOR TO PUBLICATION.<a href="#appendix-D-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<div class="alignLeft art-text artwork" id="appendix-D-2">
+<pre>
+01234567890123456789012345678901234567890123456789012345678901234567891
+</pre><a href="#appendix-D-2" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="contributors">
+<section id="appendix-E">
+      <h2 id="name-contributors">
+<a href="#name-contributors" class="section-name selfRef">Contributors</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Christian Elmerot</span></div>
+<div dir="auto" class="left"><span class="org">Cloudflare</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:christian@elmerot.se" class="email">christian@elmerot.se</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Edward Lewis</span></div>
+<div dir="auto" class="left"><span class="org">ICANN</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:edward.lewis@icann.org" class="email">edward.lewis@icann.org</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Roy Arends</span></div>
+<div dir="auto" class="left"><span class="org">ICANN</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:roy.arends@icann.org" class="email">roy.arends@icann.org</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Shumon Huque</span></div>
+<div dir="auto" class="left"><span class="org">Salesforce</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:shuque@gmail.com" class="email">shuque@gmail.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Klaus Darilion</span></div>
+<div dir="auto" class="left"><span class="org">nic.at</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:klaus.darilion@nic.at" class="email">klaus.darilion@nic.at</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Libor Peltan</span></div>
+<div dir="auto" class="left"><span class="org">CZ.nic</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:libor.peltan@nic.cz" class="email">libor.peltan@nic.cz</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Vladimír Čunát</span></div>
+<div dir="auto" class="left"><span class="org">CZ.nic</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:vladimir.cunat@nic.cz" class="email">vladimir.cunat@nic.cz</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Shane Kerr</span></div>
+<div dir="auto" class="left"><span class="org">NS1</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:shane@time-travellers.org" class="email">shane@time-travellers.org</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">David Blacka</span></div>
+<div dir="auto" class="left"><span class="org">Verisign</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:davidb@verisign.com" class="email">davidb@verisign.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">George Michaelson</span></div>
+<div dir="auto" class="left"><span class="org">APNIC</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:ggm@algebras.org" class="email">ggm@algebras.org</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Ben Schwartz</span></div>
+<div dir="auto" class="left"><span class="org">Meta</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:bemasc@meta.com" class="email">bemasc@meta.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Jan Včelák</span></div>
+<div dir="auto" class="left"><span class="org">NS1</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:jvcelak@ns1.com" class="email">jvcelak@ns1.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Peter van Dijk</span></div>
+<div dir="auto" class="left"><span class="org">PowerDNS</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:peter.van.dijk@powerdns.com" class="email">peter.van.dijk@powerdns.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Philip Homburg</span></div>
+<div dir="auto" class="left"><span class="org">NLnet Labs</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:philip@nlnetlabs.nl" class="email">philip@nlnetlabs.nl</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Erik Nygren</span></div>
+<div dir="auto" class="left"><span class="org">Akamai Technologies</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:erik+ietf@nygren.org" class="email">erik+ietf@nygren.org</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Vandan Adhvaryu</span></div>
+<div dir="auto" class="left"><span class="org">Team Internet</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:vandan@adhvaryu.uk" class="email">vandan@adhvaryu.uk</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Manu Bretelle</span></div>
+<div dir="auto" class="left"><span class="org">Meta</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:chantr4@gmail.com" class="email">chantr4@gmail.com</a>
+</div>
+</address>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-F">
+      <h2 id="name-authors-addresses">
+<a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Tim April</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:ietf@tapril.net" class="email">ietf@tapril.net</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Petr Špaček</span></div>
+<div dir="auto" class="left"><span class="org">ISC</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:pspacek@isc.org" class="email">pspacek@isc.org</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Ralf Weber</span></div>
+<div dir="auto" class="left"><span class="org">Akamai Technologies</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:rweber@akamai.com" class="email">rweber@akamai.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">David C Lawrence</span></div>
+<div dir="auto" class="left"><span class="org">Salesforce</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:tale@dd.org" class="email">tale@dd.org</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
