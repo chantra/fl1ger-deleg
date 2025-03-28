@@ -243,40 +243,40 @@ The following sections show referral examples:
 
 ### Query for foo.example
          
-;; Header: QR RCODE=0  
-;;
+    ;; Header: QR RCODE=0  
+    ;;
+        
+    ;; Question  
+    foo.example.  IN MX
+        
+    ;; Answer  
+    ;; (empty)
     
-;; Question  
-foo.example.  IN MX
+    ;; Authority  
+    example.   300 IN NS    a.example.  
+    example.   300 IN NS    b.example.net.  
+    example.   300 IN NS    c.example.org.  
     
-;; Answer  
-;; (empty)
-
-;; Authority  
-example.   300 IN NS    a.example.  
-example.   300 IN NS    b.example.net.  
-example.   300 IN NS    c.example.org.  
-
-;; Additional   
-a.example. 300 IN A     192.0.2.1  
-a.example. 300 IN AAAA  2001:DB8::1  
+    ;; Additional   
+    a.example. 300 IN A     192.0.2.1  
+    a.example. 300 IN AAAA  2001:DB8::1  
 
 ### Query for foo.test
 
-;; Header: QR AA RCODE=3
-;;
+    ;; Header: QR AA RCODE=3
+    ;;
+        
+    ;; Question  
+    foo.test.   IN MX 
+        
+    ;; Answer  
+    ;; (empty)
     
-;; Question  
-foo.test.   IN MX 
+    ;; Authority  
+    .   300 IN SOA ...
     
-;; Answer  
-;; (empty)
-
-;; Authority  
-.   300 IN SOA ...
-
-;; Additional   
-;; (empty)    
+    ;; Additional   
+    ;; (empty)    
     
      
 ## DO bit set, DE bit clear
